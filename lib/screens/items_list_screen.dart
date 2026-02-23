@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/item_service.dart';
 import '../models/item.dart';
 import 'item_detail_screen.dart';
+import 'add_item_screen.dart';
+import 'scan_qr_screen.dart';
 
 class ItemsListScreen extends StatefulWidget {
   const ItemsListScreen({Key? key}) : super(key: key);
@@ -39,12 +41,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   List<Item> _getFilteredItems() {
     var items = _itemService.items;
 
-    // Фильтр по категории
+
     if (_selectedCategory != 'Все') {
       items = items.where((item) => item.category == _selectedCategory).toList();
     }
 
-    // Фильтр по поиску
+  
     if (_searchQuery.isNotEmpty) {
       items = items.where((item) =>
         item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -75,7 +77,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Заголовок
+         
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -87,21 +89,42 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      tooltip: 'Обновить',
-                      onPressed: () {
-                        setState(() {});
-                      },
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.qr_code_scanner),
+                          tooltip: 'Сканировать QR',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ScanQRScreen()),
+                            );
+                          },
+                          style: IconButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          tooltip: 'Добавить товар',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                            ).then((_) => setState(() {}));
+                          },
+                          style: IconButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
 
-              // Поиск
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(
@@ -136,7 +159,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
               const SizedBox(height: 16),
 
-              // Категории
               SizedBox(
                 height: 50,
                 child: ListView.builder(
@@ -171,7 +193,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
               const SizedBox(height: 8),
 
-              // Статистика
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
@@ -247,7 +268,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
               const SizedBox(height: 16),
 
-              // Список товаров
               Expanded(
                 child: filteredItems.isEmpty
                     ? Center(
@@ -274,6 +294,17 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                               style: TextStyle(
                                 color: Colors.grey[500],
                               ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                                ).then((_) => setState(() {}));
+                              },
+                              icon: const Icon(Icons.add),
+                              label: const Text('Добавить товар'),
                             ),
                           ],
                         ),
@@ -308,19 +339,20 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             MaterialPageRoute(
               builder: (context) => ItemDetailScreen(item: item),
             ),
-          ).then((_) => setState(() {})); // Обновляем список при возврате
+          ).then((_) => setState(() {})); 
         },
         borderRadius: BorderRadius.circular(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Изображение
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: Stack(
                 children: [
                   Image.network(
-                    item.imageUrl,
+                    item.imageUrl.isNotEmpty 
+                        ? item.imageUrl 
+                        : 'https://images.unsplash.com/photo-1588099768531-a72d4a198538?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -348,7 +380,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       );
                     },
                   ),
-                  // Статус товара
+   
                   Positioned(
                     top: 12,
                     right: 12,
@@ -389,7 +421,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       ),
                     ),
                   ),
-                  // Категория
+
                   if (item.category != null)
                     Positioned(
                       top: 12,
@@ -412,8 +444,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 ],
               ),
             ),
-            
-            // Информация о товаре
+
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -461,7 +492,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
-                  // Индикатор статуса (для наглядности)
                   Row(
                     children: [
                       Icon(

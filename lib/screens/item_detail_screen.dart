@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/item.dart';
 import '../services/item_service.dart';
 
@@ -15,6 +16,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late Item _item;
   final ItemService _itemService = ItemService();
   bool _isLoading = false;
+  bool _showQR = false;
 
   @override
   void initState() {
@@ -41,6 +43,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         status: newStatus,
         price: _item.price,
         category: _item.category,
+        createdAt: _item.createdAt,
+        qrData: _item.qrData,
       );
       _isLoading = false;
     });
@@ -74,6 +78,71 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       );
     }
   }
+
+  Future<void> _deleteItem() async {
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Удаление товара'),
+        content: const Text('Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // Закрыть диалог
+              setState(() => _isLoading = true);
+              
+              final success = await _itemService.deleteItem(_item.id);
+              
+              if (mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle_outline, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Товар успешно удален'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  Navigator.pop(context); // Вернуться к списку
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Ошибка при удалении товара'),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Удалить'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +183,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         ),
                       ),
                     ),
+                    // Кнопка удаления
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: _deleteItem,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        elevation: 2,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -131,7 +209,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         child: Stack(
                           children: [
                             Image.network(
-                              _item.imageUrl,
+                              _item.imageUrl.isNotEmpty 
+                                  ? _item.imageUrl 
+                                  : 'https://images.unsplash.com/photo-1588099768531-a72d4a198538?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
                               height: 300,
                               width: double.infinity,
                               fit: BoxFit.cover,
@@ -303,6 +383,89 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
                       const SizedBox(height: 24),
 
+                      // QR-код товара (сворачиваемый)
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            // Заголовок с возможностью развернуть/свернуть
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _showQR = !_showQR;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.qr_code_scanner,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'QR-код товара',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Icon(
+                                      _showQR ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            
+                            // QR-код (показывается только если _showQR = true)
+                            if (_showQR) ...[
+                              const Divider(height: 1),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      child: QrImageView(
+                                        data: _item.qrData ?? _item.generateQRData(),
+                                        version: QrVersions.auto,
+                                        size: 200,
+                                        backgroundColor: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Отсканируйте этот QR-код для быстрого доступа к товару',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
                       // Информация о статусе
                       Card(
                         elevation: 2,
@@ -371,7 +534,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
                       const SizedBox(height: 32),
 
-                      // Кнопки действий
+                          // Кнопки действий
                       Row(
                         children: [
                           Expanded(

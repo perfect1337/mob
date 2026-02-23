@@ -1,4 +1,5 @@
-import 'dart:ui';
+import 'dart:convert';
+import 'package:flutter/material.dart';
 
 class Item {
   final String id;
@@ -8,7 +9,8 @@ class Item {
   final ItemStatus status;
   final double? price;
   final String? category;
-
+  final DateTime createdAt;
+  final String? qrData; 
   Item({
     required this.id,
     required this.name,
@@ -17,9 +19,41 @@ class Item {
     required this.status,
     this.price,
     this.category,
+    required this.createdAt,
+    this.qrData,
   });
 
-  // Преобразование Item в JSON
+  String generateQRData() {
+    final data = {
+      'id': id,
+      'name': name,
+      'description': description,
+      'price': price,
+      'category': category,
+      'createdAt': createdAt.toIso8601String(),
+    };
+    return jsonEncode(data);
+  }
+
+  static Item? fromQRData(String qrData) {
+    try {
+      final Map<String, dynamic> json = jsonDecode(qrData);
+      return Item(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String,
+        imageUrl: '', 
+        status: ItemStatus.available,
+        price: json['price'] != null ? (json['price'] as num).toDouble() : null,
+        category: json['category'] as String?,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        qrData: qrData,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -29,10 +63,11 @@ class Item {
       'status': status.toString(),
       'price': price,
       'category': category,
+      'createdAt': createdAt.toIso8601String(),
+      'qrData': qrData ?? generateQRData(),
     };
   }
 
-  // Создание Item из JSON
   factory Item.fromJson(Map<String, dynamic> json) {
     return Item(
       id: json['id'] as String,
@@ -45,6 +80,8 @@ class Item {
       ),
       price: json['price'] as double?,
       category: json['category'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      qrData: json['qrData'] as String?,
     );
   }
 
@@ -70,9 +107,9 @@ enum ItemStatus {
   Color get color {
     switch (this) {
       case ItemStatus.available:
-        return Color(0xFF4CAF50); // Зеленый
+        return const Color(0xFF4CAF50); 
       case ItemStatus.occupied:
-        return Color(0xFFF44336); // Красный
+        return const Color(0xFFF44336); 
     }
   }
 }
