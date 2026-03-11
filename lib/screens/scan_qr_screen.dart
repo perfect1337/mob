@@ -15,7 +15,6 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   bool _hasError = false;
   String _errorMessage = '';
   
-  // Для мобильных устройств
   MobileScannerController? _mobileController;
 
   @override
@@ -54,7 +53,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     } else {
       setState(() {
         _hasError = true;
-        _errorMessage = 'Не удалось распознать QR-код товара';
+        _errorMessage = 'Не удалось распознать QR-код';
       });
       
       Future.delayed(const Duration(seconds: 3), () {
@@ -73,6 +72,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('QR-код распознан'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,41 +81,33 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green[100],
+                  color: Colors.grey.shade100,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.check_circle_outline,
-                  color: Colors.green[700],
-                  size: 40,
+                  color: Colors.grey.shade700,
+                  size: 32,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Информация о товаре:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('📦 Название: ${item.name}'),
+                  Text('Название: ${item.name}', style: const TextStyle(fontSize: 13)),
                   const SizedBox(height: 4),
-                  Text('📝 Описание: ${item.description}'),
+                  Text('Описание: ${item.description}', style: const TextStyle(fontSize: 13)),
                   if (item.price != null) ...[
                     const SizedBox(height: 4),
-                    Text('💰 Цена: \$${item.price!.toStringAsFixed(2)}'),
-                  ],
-                  if (item.category != null) ...[
-                    const SizedBox(height: 4),
-                    Text('🏷️ Категория: ${item.category}'),
+                    Text('Цена: \$${item.price!.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13)),
                   ],
                 ],
               ),
@@ -127,13 +119,16 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text('Продолжить сканирование'),
+            child: Text('Продолжить', style: TextStyle(color: Colors.grey.shade700)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(context);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey.shade800,
+            ),
             child: const Text('Готово'),
           ),
         ],
@@ -146,8 +141,6 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Сканировать QR-код'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
       ),
       body: _buildBody(),
     );
@@ -155,7 +148,6 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
   Widget _buildBody() {
     if (kIsWeb) {
-      // Для веба показываем информационное сообщение
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -164,32 +156,29 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             children: [
               Icon(
                 Icons.info_outline,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
+                size: 60,
+                color: Colors.grey.shade600,
               ),
               const SizedBox(height: 24),
               Text(
                 'Сканирование через веб',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Для сканирования QR-кодов используйте мобильное приложение.\n\n'
-                'На веб-версии эта функция недоступна.',
+              Text(
+                'Для сканирования QR-кодов используйте мобильное приложение.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, height: 1.5),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
               const SizedBox(height: 32),
-              ElevatedButton.icon(
+              ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Вернуться назад'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  backgroundColor: Colors.grey.shade800,
                 ),
+                child: const Text('Вернуться назад'),
               ),
             ],
           ),
@@ -197,7 +186,6 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       );
     }
 
-    // Для мобильных устройств - полноценный сканер
     return Stack(
       children: [
         MobileScanner(
@@ -207,18 +195,18 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
         Center(
           child: Container(
-            width: 250,
-            height: 250,
+            width: 220,
+            height: 220,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.white, width: 2),
-              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade400, width: 1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Stack(
               children: [
-                Positioned(top: -2, left: -2, child: _buildCorner()),
-                Positioned(top: -2, right: -2, child: _buildCorner()),
-                Positioned(bottom: -2, left: -2, child: _buildCorner()),
-                Positioned(bottom: -2, right: -2, child: _buildCorner()),
+                Positioned(top: -1, left: -1, child: _buildCorner()),
+                Positioned(top: -1, right: -1, child: _buildCorner()),
+                Positioned(bottom: -1, left: -1, child: _buildCorner()),
+                Positioned(bottom: -1, right: -1, child: _buildCorner()),
               ],
             ),
           ),
@@ -232,21 +220,25 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             margin: const EdgeInsets.symmetric(horizontal: 40),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(30),
+              color: Colors.grey.shade800.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(
               'Поместите QR-код в область сканирования',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 13),
             ),
           ),
         ),
 
         if (_isProcessing)
           Container(
-            color: Colors.black.withOpacity(0.5),
-            child: const Center(child: CircularProgressIndicator()),
+            color: Colors.black.withOpacity(0.3),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+              ),
+            ),
           ),
 
         if (_hasError)
@@ -255,19 +247,19 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             left: 20,
             right: 20,
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red[700],
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.grey.shade800,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
+                  Icon(Icons.error_outline, color: Colors.grey.shade300, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
                     ),
                   ),
                 ],
@@ -280,12 +272,12 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
   Widget _buildCorner() {
     return Container(
-      width: 30,
-      height: 30,
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: Colors.green[400]!, width: 4),
-          left: BorderSide(color: Colors.green[400]!, width: 4),
+          top: BorderSide(color: Colors.grey.shade400, width: 2),
+          left: BorderSide(color: Colors.grey.shade400, width: 2),
         ),
       ),
     );

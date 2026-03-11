@@ -13,7 +13,7 @@ void main() async {
   
   final itemService = ItemService();
   await itemService.initialize();
-  
+                          
   runApp(MyAuthApp(isLoggedIn: authService.isLoggedIn()));
 }
 

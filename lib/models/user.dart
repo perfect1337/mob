@@ -9,7 +9,6 @@ class User {
     required this.password,
   });
 
-  // Преобразование User в JSON
   Map<String, dynamic> toJson() {
     return {
       'email': email,
@@ -17,7 +16,6 @@ class User {
     };
   }
 
-  // Создание User из JSON
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       email: json['email'] as String,

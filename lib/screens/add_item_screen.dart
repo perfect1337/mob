@@ -52,7 +52,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         imageUrl: _imageUrlController.text.trim().isEmpty
-            ? 'https://images.unsplash.com/photo-1588099768531-a72d4a198538?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            ? ''
             : _imageUrlController.text.trim(),
         status: ItemStatus.available,
         price: double.tryParse(_priceController.text),
@@ -89,20 +89,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Добавить товар'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              Colors.white,
-            ],
-          ),
-        ),
+        color: Colors.white,
         child: SafeArea(
           child: _currentStep == 0
               ? _buildFormStep()
@@ -119,35 +108,17 @@ class _AddItemScreenState extends State<AddItemScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(4),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.green,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    size: 12,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Шаг 1 из 2: Введите данные',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Шаг 1 из 2: Введите данные',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 13,
+              ),
             ),
           ),
 
@@ -155,15 +126,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
           Text(
             'Информация о товаре',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            'Заполните все поля для создания товара',
+            'Заполните поля для создания товара',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Colors.grey.shade500,
+              fontSize: 13,
             ),
           ),
 
@@ -175,11 +145,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Название товара *',
-                    prefixIcon: Icon(Icons.inventory_2_outlined),
-                    border: OutlineInputBorder(),
-                    hintText: 'Введите название товара',
+                    prefixIcon: Icon(Icons.inventory_2_outlined, size: 20, color: Colors.grey.shade600),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -193,11 +161,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Описание *',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    border: OutlineInputBorder(),
-                    hintText: 'Введите подробное описание товара',
+                    prefixIcon: Icon(Icons.description_outlined, size: 20, color: Colors.grey.shade600),
                   ),
                   maxLines: 3,
                   validator: (value) {
@@ -212,11 +178,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 TextFormField(
                   controller: _priceController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Цена',
-                    prefixIcon: Icon(Icons.attach_money_outlined),
-                    border: OutlineInputBorder(),
-                    hintText: 'Введите цену (необязательно)',
+                    prefixIcon: Icon(Icons.attach_money_outlined, size: 20, color: Colors.grey.shade600),
+                    hintText: 'Необязательно',
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -224,10 +189,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Категория',
-                    prefixIcon: Icon(Icons.category_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.category_outlined, size: 20, color: Colors.grey.shade600),
                   ),
                   value: _categoryController.text.isEmpty ? null : _categoryController.text,
                   items: _categories.map((category) {
@@ -247,11 +211,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 TextFormField(
                   controller: _imageUrlController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'URL изображения',
-                    prefixIcon: Icon(Icons.image_outlined),
-                    border: OutlineInputBorder(),
-                    hintText: 'Введите ссылку на изображение (необязательно)',
+                    prefixIcon: Icon(Icons.image_outlined, size: 20, color: Colors.grey.shade600),
+                    hintText: 'Необязательно',
                   ),
                 ),
 
@@ -264,6 +227,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: Colors.grey.shade300),
                         ),
                         child: const Text('Отмена'),
                       ),
@@ -274,12 +238,16 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         onPressed: _isLoading ? null : _generateItem,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.grey.shade800,
                         ),
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
                               )
                             : const Text('Создать QR-код'),
                       ),
@@ -305,35 +273,17 @@ class _AddItemScreenState extends State<AddItemScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(4),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.green,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    size: 12,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Шаг 2 из 2: QR-код готов',
-                  style: TextStyle(
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Шаг 2 из 2: QR-код готов',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 13,
+              ),
             ),
           ),
 
@@ -342,13 +292,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
+              color: Colors.grey.shade100,
               shape: BoxShape.circle,
-              color: Colors.green[100],
             ),
             child: Icon(
               Icons.check_circle_outline,
-              size: 60,
-              color: Colors.green[700],
+              size: 40,
+              color: Colors.grey.shade700,
             ),
           ),
 
@@ -356,9 +306,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
           Text(
             'Товар успешно создан!',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.green[700],
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w300,
             ),
           ),
 
@@ -367,8 +316,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           Text(
             _nameController.text,
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
             ),
           ),
 
@@ -378,29 +327,23 @@ class _AddItemScreenState extends State<AddItemScreen> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
             ),
             child: Column(
               children: [
                 QrImageView(
                   data: _generatedQRData!,
                   version: QrVersions.auto,
-                  size: 250,
+                  size: 200,
                   backgroundColor: Colors.white,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   'QR-код товара',
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -409,33 +352,32 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
           const SizedBox(height: 24),
 
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildInfoRow('Название', _nameController.text),
-                  const Divider(),
-                  _buildInfoRow('Описание', _descriptionController.text, maxLines: 3),
-                  if (_priceController.text.isNotEmpty) ...[
-                    const Divider(),
-                    _buildInfoRow('Цена', '\$${_priceController.text}'),
-                  ],
-                  if (_categoryController.text.isNotEmpty) ...[
-                    const Divider(),
-                    _buildInfoRow('Категория', _categoryController.text),
-                  ],
-                  const Divider(),
-                  _buildInfoRow(
-                    'Дата создания',
-                    DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now()),
-                  ),
+            child: Column(
+              children: [
+                _buildInfoRow('Название', _nameController.text),
+                const Divider(height: 16),
+                _buildInfoRow('Описание', _descriptionController.text),
+                if (_priceController.text.isNotEmpty) ...[
+                  const Divider(height: 16),
+                  _buildInfoRow('Цена', '\$${_priceController.text}'),
                 ],
-              ),
+                if (_categoryController.text.isNotEmpty) ...[
+                  const Divider(height: 16),
+                  _buildInfoRow('Категория', _categoryController.text),
+                ],
+                const Divider(height: 16),
+                _buildInfoRow(
+                  'Дата создания',
+                  DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now()),
+                ),
+              ],
             ),
           ),
 
@@ -446,10 +388,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _resetForm,
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add, size: 18),
                   label: const Text('Добавить еще'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: Colors.grey.shade300),
                   ),
                 ),
               ),
@@ -457,10 +400,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.check),
+                  icon: const Icon(Icons.check, size: 18),
                   label: const Text('Готово'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.grey.shade800,
                   ),
                 ),
               ),
@@ -471,29 +415,30 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {int maxLines = 1}) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 80,
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
+                color: Colors.grey.shade500,
+                fontSize: 13,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
+              style: TextStyle(
+                color: Colors.grey.shade800,
+                fontSize: 13,
               ),
-              maxLines: maxLines,
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
           ),

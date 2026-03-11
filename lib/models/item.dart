@@ -10,7 +10,8 @@ class Item {
   final double? price;
   final String? category;
   final DateTime createdAt;
-  final String? qrData; 
+  final String? qrData;
+  
   Item({
     required this.id,
     required this.name,
@@ -107,9 +108,9 @@ enum ItemStatus {
   Color get color {
     switch (this) {
       case ItemStatus.available:
-        return const Color(0xFF4CAF50); 
+        return const Color(0xFF9E9E9E);
       case ItemStatus.occupied:
-        return const Color(0xFFF44336); 
+        return const Color(0xFFBDBDBD);
     }
   }
 }
