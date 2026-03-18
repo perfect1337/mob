@@ -142,12 +142,40 @@ class _AddItemScreenState extends State<AddItemScreen> {
           Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+         
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Название товара *',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Название товара *',
+                    hintText: 'Введите название товара',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
                     prefixIcon: Icon(Icons.inventory_2_outlined, size: 20, color: Colors.grey.shade600),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -157,13 +185,40 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
+            
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Описание *',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                
                 TextFormField(
                   controller: _descriptionController,
                   decoration: InputDecoration(
-                    labelText: 'Описание *',
+                    hintText: 'Введите описание товара',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
                     prefixIcon: Icon(Icons.description_outlined, size: 20, color: Colors.grey.shade600),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
+                    ),
                   ),
                   maxLines: 3,
                   validator: (value) {
@@ -174,24 +229,77 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
+               
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Цена',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                
                 TextFormField(
                   controller: _priceController,
                   decoration: InputDecoration(
-                    labelText: 'Цена',
-                    prefixIcon: Icon(Icons.attach_money_outlined, size: 20, color: Colors.grey.shade600),
                     hintText: 'Необязательно',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    prefixIcon: Icon(Icons.attach_money_outlined, size: 20, color: Colors.grey.shade600),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
+                    ),
                   ),
                   keyboardType: TextInputType.number,
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
+             
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Категория',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Категория',
+                    hintText: 'Выберите категорию',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
                     prefixIcon: Icon(Icons.category_outlined, size: 20, color: Colors.grey.shade600),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
+                    ),
                   ),
                   value: _categoryController.text.isEmpty ? null : _categoryController.text,
                   items: _categories.map((category) {
@@ -207,14 +315,40 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
+              
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'URL изображения',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                
                 TextFormField(
                   controller: _imageUrlController,
                   decoration: InputDecoration(
-                    labelText: 'URL изображения',
-                    prefixIcon: Icon(Icons.image_outlined, size: 20, color: Colors.grey.shade600),
                     hintText: 'Необязательно',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    prefixIcon: Icon(Icons.image_outlined, size: 20, color: Colors.grey.shade600),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
+                    ),
                   ),
                 ),
 
@@ -228,6 +362,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('Отмена'),
                       ),
@@ -239,6 +376,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.grey.shade800,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: _isLoading
                             ? SizedBox(
@@ -393,6 +533,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -405,6 +548,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: Colors.grey.shade800,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),

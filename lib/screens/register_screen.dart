@@ -17,6 +17,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
+  
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
 
   @override
   void dispose() {
@@ -26,9 +30,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void _clearEmailError() {
+    if (_emailError != null) {
+      setState(() => _emailError = null);
+    }
+  }
+
+  void _clearPasswordError() {
+    if (_passwordError != null) {
+      setState(() => _passwordError = null);
+    }
+  }
+
+  void _clearConfirmPasswordError() {
+    if (_confirmPasswordError != null) {
+      setState(() => _confirmPasswordError = null);
+    }
+  }
+
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+      setState(() {
+        _isLoading = true;
+        _emailError = null;
+        _passwordError = null;
+        _confirmPasswordError = null;
+      });
 
       final email = _emailController.text.trim();
       final password = _passwordController.text;
@@ -67,6 +94,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
           Navigator.pop(context);
         } else {
+          setState(() {
+            _emailError = 'Email уже используется';
+          });
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -120,7 +151,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-         
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Container(
@@ -136,7 +166,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   
-            
                   Container(
                     width: 100,
                     height: 100,
@@ -166,7 +195,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 20),
                   
-           
                   const Text(
                     'Регистрация',
                     style: TextStyle(
@@ -178,7 +206,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 30),
                   
-               
                   Container(
                     width: 360, 
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -197,19 +224,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       key: _formKey,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                 
+                          // Email label
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Email',
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          
+                          // Email field
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            onChanged: (_) => _clearEmailError(),
                             decoration: InputDecoration(
-                              labelText: 'Email',
+                              hintText: 'Введите email',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
                               prefixIcon: Container(
                                 margin: const EdgeInsets.all(10),
                                 child: const Icon(Icons.email_outlined, color: Color(0xFFEC4899), size: 20),
                               ),
-                              labelStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              errorText: _emailError,
+                              errorStyle: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+                              ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) return 'Введите email';
@@ -217,14 +281,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 12),
                           
-                   
+                          const SizedBox(height: 20),
+                          
+                          // Password label
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Пароль',
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          
+                          // Password field
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
+                            onChanged: (_) => _clearPasswordError(),
                             decoration: InputDecoration(
-                              labelText: 'Пароль',
+                              hintText: 'Введите пароль',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
                               prefixIcon: Container(
                                 margin: const EdgeInsets.all(10),
                                 child: const Icon(Icons.lock_outline_rounded, color: Color(0xFFEC4899), size: 20),
@@ -237,8 +317,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                                 onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                               ),
-                              labelStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              errorText: _passwordError,
+                              errorStyle: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+                              ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) return 'Введите пароль';
@@ -246,14 +347,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 12),
                           
-                 
+                          const SizedBox(height: 20),
+                          
+                          // Confirm password label
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Подтвердите пароль',
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          
+                          // Confirm password field
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: !_isConfirmPasswordVisible,
+                            onChanged: (_) => _clearConfirmPasswordError(),
                             decoration: InputDecoration(
-                              labelText: 'Подтвердите пароль',
+                              hintText: 'Введите пароль еще раз',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
                               prefixIcon: Container(
                                 margin: const EdgeInsets.all(10),
                                 child: const Icon(Icons.lock_outline_rounded, color: Color(0xFFEC4899), size: 20),
@@ -266,8 +383,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                                 onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
                               ),
-                              labelStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              errorText: _confirmPasswordError,
+                              errorStyle: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+                              ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) return 'Подтвердите пароль';
@@ -276,12 +414,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           
-                          const SizedBox(height: 35), 
-                          
+                          const SizedBox(height: 35),
                           
                           SizedBox(
                             width: double.infinity,
-                            height: 60, 
+                            height: 60,
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
@@ -313,7 +450,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           
                           const SizedBox(height: 20),
                           
-              
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             style: TextButton.styleFrom(
