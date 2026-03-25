@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'dart:html' as html;
+import 'dart:typed_data';
+import 'dart:js' as js;
 import '../models/item.dart';
+import 'dart:convert';
 
 class ScanQRScreen extends StatefulWidget {
   const ScanQRScreen({Key? key}) : super(key: key);
@@ -14,48 +16,167 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   bool _isProcessing = false;
   bool _hasError = false;
   String _errorMessage = '';
-  
-  MobileScannerController? _mobileController;
+  bool _qrFound = false;
 
-  @override
-  void initState() {
-    super.initState();
-    if (!kIsWeb) {
-      _mobileController = MobileScannerController();
-    }
-  }
-
-  @override
-  void dispose() {
-    _mobileController?.dispose();
-    super.dispose();
-  }
-
-  void _onDetect(BarcodeCapture capture) {
+  Future<void> _pickImageFromGallery() async {
     if (_isProcessing) return;
 
-    final List<Barcode> barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
-      final String? qrData = barcode.rawValue;
-      
-      if (qrData != null && qrData.isNotEmpty) {
-        _processQRData(qrData);
-        break;
+    setState(() {
+      _isProcessing = true;
+      _hasError = false;
+      _qrFound = false;
+    });
+
+    final input = html.FileUploadInputElement();
+    input.accept = 'image/*';
+    input.click();
+
+    input.onChange.listen((event) async {
+      if (input.files == null || input.files!.isEmpty) {
+        setState(() {
+          _isProcessing = false;
+        });
+        return;
       }
+
+      final file = input.files![0];
+
+      setState(() {
+        _errorMessage = 'Загрузка изображения...';
+      });
+
+      final reader = html.FileReader();
+
+      reader.onLoadEnd.listen((e) async {
+        final bytes = reader.result as Uint8List;
+        await _compressAndDecode(bytes);
+      });
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  Future<void> _compressAndDecode(Uint8List bytes) async {
+    try {
+      setState(() {
+        _errorMessage = 'Сжатие изображения...';
+      });
+
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+
+      final img = html.ImageElement();
+      img.src = url;
+
+      await img.onLoad.first;
+
+      final originalWidth = img.width!;
+      final originalHeight = img.height!;
+
+      int newWidth = originalWidth;
+      int newHeight = originalHeight;
+
+      if (originalWidth > 800 || originalHeight > 800) {
+        if (originalWidth > originalHeight) {
+          newWidth = 800;
+          newHeight = (originalHeight * 800 / originalWidth).round();
+        } else {
+          newHeight = 800;
+          newWidth = (originalWidth * 800 / originalHeight).round();
+        }
+      }
+
+      setState(() {
+        _errorMessage = 'Распознавание QR-кода...';
+      });
+
+      final canvas = html.CanvasElement(width: newWidth, height: newHeight);
+      final ctx = canvas.context2D;
+      ctx.drawImageScaled(img, 0, 0, newWidth, newHeight);
+
+      final imageData = ctx.getImageData(0, 0, newWidth, newHeight);
+
+      html.Url.revokeObjectUrl(url);
+
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final jsQR = js.context['jsQR'];
+
+      if (jsQR == null) {
+        setState(() {
+          _isProcessing = false;
+          _hasError = true;
+          _errorMessage = 'Ошибка: библиотека не загружена';
+        });
+        return;
+      }
+
+      final result = jsQR.callMethod('call', [
+        js.context,
+        imageData.data,
+        newWidth,
+        newHeight
+      ]);
+
+      if (result != null && result['data'] != null && result['data'].toString().isNotEmpty) {
+        _processQRData(result['data'].toString());
+      } else {
+        setState(() {
+          _isProcessing = false;
+          _hasError = true;
+          _errorMessage = 'QR-код не найден. Убедитесь, что изображение содержит четкий QR-код.';
+        });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _hasError = false;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+        _hasError = true;
+        _errorMessage = 'Ошибка: $e';
+      });
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _hasError = false;
+          });
+        }
+      });
     }
   }
 
   void _processQRData(String qrData) {
-    final item = Item.fromQRData(qrData);
+    try {
+      Map<String, dynamic> json = jsonDecode(qrData);
 
-    if (item != null) {
-      _showSuccessDialog(item);
-    } else {
+      final item = Item(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String,
+        imageUrl: json['imageUrl'] as String? ?? '',
+        status: ItemStatus.available,
+        price: json['price'] != null ? (json['price'] as num).toDouble() : null,
+        category: json['category'] as String?,
+        createdAt: DateTime.now(),
+        qrData: qrData,
+      );
+
       setState(() {
-        _hasError = true;
-        _errorMessage = 'Не удалось распознать QR-код';
+        _isProcessing = false;
       });
-      
+
+      _showSuccessDialog(item);
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+        _hasError = true;
+        _errorMessage = 'Неверный формат QR-кода. Данные: ${qrData.substring(0, qrData.length > 50 ? 50 : qrData.length)}';
+      });
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
           setState(() {
@@ -142,142 +263,89 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       appBar: AppBar(
         title: const Text('Сканировать QR-код'),
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (kIsWeb) {
-      return Center(
+      body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.info_outline,
-                size: 60,
-                color: Colors.grey.shade600,
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 60,
+                  color: Colors.grey.shade600,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               Text(
-                'Сканирование через веб',
-                style: Theme.of(context).textTheme.titleLarge,
+                'Выберите изображение с QR-кодом',
+                style: Theme.of(context).textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
-                'Для сканирования QR-кодов используйте мобильное приложение.',
+                'Нажмите на кнопку и выберите фото из галереи',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  backgroundColor: Colors.grey.shade800,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
                 ),
-                child: const Text('Вернуться назад'),
               ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        MobileScanner(
-          controller: _mobileController!,
-          onDetect: _onDetect,
-        ),
-
-        Center(
-          child: Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade400, width: 1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              children: [
-                Positioned(top: -1, left: -1, child: _buildCorner()),
-                Positioned(top: -1, right: -1, child: _buildCorner()),
-                Positioned(bottom: -1, left: -1, child: _buildCorner()),
-                Positioned(bottom: -1, right: -1, child: _buildCorner()),
-              ],
-            ),
-          ),
-        ),
-
-        Positioned(
-          bottom: 50,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            margin: const EdgeInsets.symmetric(horizontal: 40),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade800.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'Поместите QR-код в область сканирования',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 13),
-            ),
-          ),
-        ),
-
-        if (_isProcessing)
-          Container(
-            color: Colors.black.withOpacity(0.3),
-            child: Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
-              ),
-            ),
-          ),
-
-        if (_hasError)
-          Positioned(
-            top: 20,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade800,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.grey.shade300, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage,
-                      style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: 200,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: _isProcessing ? null : _pickImageFromGallery,
+                  icon: const Icon(Icons.photo_library_rounded),
+                  label: const Text('ВЫБРАТЬ ФОТО'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey.shade800,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+              if (_isProcessing) ...[
+                const SizedBox(height: 32),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage.isNotEmpty ? _errorMessage : 'Обработка...',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ],
+              if (_hasError && !_isProcessing) ...[
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade800,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.grey.shade300, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage,
+                          style: TextStyle(color: Colors.grey.shade300, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
-      ],
-    );
-  }
-
-  Widget _buildCorner() {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade400, width: 2),
-          left: BorderSide(color: Colors.grey.shade400, width: 2),
         ),
       ),
     );

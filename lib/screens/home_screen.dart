@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: screens[_selectedIndex],
-
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -76,10 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainScreen(
-    BuildContext context,
-    AuthService authService,
-    User? currentUser,
-  ) {
+      BuildContext context,
+      AuthService authService,
+      User? currentUser,
+      ) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -121,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            
+
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -138,8 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
-                      
-  
+
                       Center(
                         child: Column(
                           children: [
@@ -204,10 +202,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 30),
-                      
-         
+
                       Row(
                         children: [
                           Expanded(
@@ -229,10 +226,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
-  
+
                       const Text(
                         'Быстрые действия',
                         style: TextStyle(
@@ -242,70 +238,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
 
                       _buildActionButton(
                         'Просмотр товаров',
                         Icons.inventory_2_rounded,
-                        () {
+                            () {
                           setState(() {
                             _selectedIndex = 1;
                           });
                         },
                         fullWidth: true,
-                      ),
-                      
-                      const SizedBox(height: 30),
-                      
-
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.trending_up_rounded, color: Color(0xFF10B981)),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Недавняя активность',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF1F2937),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            _buildActivityItem(
-                              'Новый пользователь зарегистрирован',
-                              '2 минуты назад',
-                              Icons.person_add_rounded,
-                            ),
-                            _buildActivityItem(
-                              'Статус товара обновлен',
-                              '15 минут назад',
-                              Icons.update_rounded,
-                            ),
-                            _buildActivityItem(
-                              'QR-код отсканирован',
-                              '1 час назад',
-                              Icons.qr_code_scanner_rounded,
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -402,51 +344,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActivityItem(String title, String time, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 16, color: const Color(0xFF7C3AED)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _logout(BuildContext context) async {
     final authService = AuthService();
     await authService.logout();
-    
+
     if (context.mounted) {
       Navigator.pushReplacement(
         context,
