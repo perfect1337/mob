@@ -4,7 +4,7 @@ import '../models/item.dart';
 import 'item_detail_screen.dart';
 import 'add_item_screen.dart';
 import 'scan_qr_screen.dart';
-
+import 'dart:convert';
 class ItemsListScreen extends StatefulWidget {
   const ItemsListScreen({Key? key}) : super(key: key);
 
@@ -47,12 +47,75 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
     if (_searchQuery.isNotEmpty) {
       items = items.where((item) =>
-        item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().contains(_searchQuery.toLowerCase())
+      item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().contains(_searchQuery.toLowerCase())
       ).toList();
     }
 
     return items;
+  }
+
+  Future<void> _handleScanResult(dynamic result) async {
+    if (result == null) return;
+
+    Item? itemToShow;
+
+    if (result is Item) {
+      itemToShow = result;
+
+      final existingItem = _itemService.findItemByQRData(result.qrData ?? '');
+      if (existingItem != null) {
+
+        itemToShow = existingItem;
+      }
+    }
+
+    else if (result is String) {
+
+      itemToShow = _itemService.getItemById(result);
+
+      if (itemToShow == null) {
+        itemToShow = _itemService.findItemByQRData(result);
+      }
+
+      if (itemToShow == null && result.startsWith('{')) {
+        try {
+          final jsonData = jsonDecode(result);
+          itemToShow = Item(
+            id: jsonData['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            name: jsonData['name'] as String? ?? 'Товар из QR-кода',
+            description: jsonData['description'] as String? ?? 'Нет описания',
+            imageUrl: jsonData['imageUrl'] as String? ?? '',
+            status: ItemStatus.available,
+            price: jsonData['price'] != null ? (jsonData['price'] as num).toDouble() : null,
+            category: jsonData['category'] as String?,
+            createdAt: DateTime.now(),
+            qrData: result,
+          );
+        } catch (e) {
+          // Не JSON
+        }
+      }
+    }
+
+    if (itemToShow != null && mounted) {
+      // Показываем детали товара
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ItemDetailScreen(item: itemToShow!),
+        ),
+      );
+      setState(() {});
+    } else if (mounted) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось распознать QR-код'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -97,11 +160,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                           ),
                           child: IconButton(
                             icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              final result = await Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const ScanQRScreen()),
+                                MaterialPageRoute(builder: (context) => const ScanQrScreen()),
                               );
+                              await _handleScanResult(result);
                             },
                           ),
                         ),
@@ -145,7 +209,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                         padding: const EdgeInsets.all(20.0),
                         child: Column(
                           children: [
-               
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -166,14 +229,14 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                   prefixIcon: Icon(Icons.search_rounded, color: const Color(0xFF7C3AED)),
                                   suffixIcon: _searchQuery.isNotEmpty
                                       ? IconButton(
-                                          icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
-                                          onPressed: () {
-                                            _searchController.clear();
-                                            setState(() {
-                                              _searchQuery = '';
-                                            });
-                                          },
-                                        )
+                                    icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
                                       : null,
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -185,9 +248,9 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                 },
                               ),
                             ),
-                            
+
                             const SizedBox(height: 16),
-                
+
                             SizedBox(
                               height: 45,
                               child: ListView.builder(
@@ -229,7 +292,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
                             const SizedBox(height: 16),
 
-                  
                             Row(
                               children: [
                                 Text(
@@ -316,66 +378,65 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                         ),
                       ),
 
-          
                       Expanded(
                         child: filteredItems.isEmpty
                             ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.inventory_2_outlined,
-                                      size: 80,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'Товары не найдены',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF1F2937),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Попробуйте изменить параметры поиска',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const AddItemScreen()),
-                                        ).then((_) => setState(() {}));
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF7C3AED),
-                                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                      ),
-                                      child: const Text('ДОБАВИТЬ ТОВАР'),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                itemCount: filteredItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = filteredItems[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _buildItemCard(item),
-                                  );
-                                },
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.inventory_2_outlined,
+                                size: 80,
+                                color: Colors.grey.shade400,
                               ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Товары не найдены',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Попробуйте изменить параметры поиска',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                                  ).then((_) => setState(() {}));
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF7C3AED),
+                                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: const Text('ДОБАВИТЬ ТОВАР'),
+                              ),
+                            ],
+                          ),
+                        )
+                            : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = filteredItems[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildItemCard(item),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -414,7 +475,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-  
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               child: Stack(
@@ -425,29 +485,28 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     color: Colors.grey.shade100,
                     child: item.imageUrl.isNotEmpty
                         ? Image.network(
-                            item.imageUrl,
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.image_outlined,
-                                  size: 50,
-                                  color: Colors.grey.shade400,
-                                ),
-                              );
-                            },
-                          )
-                        : Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 50,
-                              color: Colors.grey.shade400,
-                            ),
+                      item.imageUrl,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 50,
+                            color: Colors.grey.shade400,
                           ),
+                        );
+                      },
+                    )
+                        : Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 50,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
                   ),
-   
                   Positioned(
                     top: 12,
                     right: 12,
@@ -471,7 +530,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                             height: 8,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: item.status == ItemStatus.available 
+                              color: item.status == ItemStatus.available
                                   ? const Color(0xFF10B981)
                                   : const Color(0xFFEF4444),
                             ),
@@ -489,7 +548,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       ),
                     ),
                   ),
-   
                   if (item.category != null)
                     Positioned(
                       top: 12,

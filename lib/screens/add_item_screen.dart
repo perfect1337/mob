@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/item.dart';
 import '../services/item_service.dart';
 
@@ -17,11 +19,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _categoryController = TextEditingController();
-  final _imageUrlController = TextEditingController();
-  
+
+  File? _selectedImage;
   String? _generatedQRData;
   bool _isLoading = false;
   int _currentStep = 0;
+  bool _isImageLoading = false;
 
   final List<String> _categories = [
     'Электроника',
@@ -39,8 +42,44 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _categoryController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    setState(() {
+      _isImageLoading = true;
+    });
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ошибка при выборе изображения'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isImageLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _generateItem() async {
@@ -51,9 +90,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty
-            ? ''
-            : _imageUrlController.text.trim(),
+        imageUrl: _selectedImage?.path ?? '', // Сохраняем путь к файлу
         status: ItemStatus.available,
         price: double.tryParse(_priceController.text),
         category: _categoryController.text.trim().isEmpty
@@ -77,8 +114,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _descriptionController.clear();
     _priceController.clear();
     _categoryController.clear();
-    _imageUrlController.clear();
     setState(() {
+      _selectedImage = null;
       _generatedQRData = null;
       _currentStep = 0;
     });
@@ -144,7 +181,67 @@ class _AddItemScreenState extends State<AddItemScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-         
+                // Изображение товара
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Изображение товара',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: _isImageLoading
+                        ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                        : _selectedImage != null
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _selectedImage!,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                        : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 50,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Нажмите для выбора изображения',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Название товара
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -156,7 +253,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                   ),
                 ),
-                
+
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -187,7 +284,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-            
+                // Описание
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -199,7 +296,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                   ),
                 ),
-                
+
                 TextFormField(
                   controller: _descriptionController,
                   decoration: InputDecoration(
@@ -231,7 +328,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-               
+                // Цена
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -243,7 +340,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                   ),
                 ),
-                
+
                 TextFormField(
                   controller: _priceController,
                   decoration: InputDecoration(
@@ -269,7 +366,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-             
+                // Категория
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -281,7 +378,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                   ),
                 ),
-                
+
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
                     hintText: 'Выберите категорию',
@@ -315,43 +412,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   },
                 ),
 
-                const SizedBox(height: 20),
-
-              
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'URL изображения',
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                
-                TextFormField(
-                  controller: _imageUrlController,
-                  decoration: InputDecoration(
-                    hintText: 'Необязательно',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.image_outlined, size: 20, color: Colors.grey.shade600),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
-                    ),
-                  ),
-                ),
-
                 const SizedBox(height: 32),
 
                 Row(
@@ -382,13 +442,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         ),
                         child: _isLoading
                             ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
                             : const Text('Создать QR-код'),
                       ),
                     ),
@@ -463,6 +523,27 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
           const SizedBox(height: 32),
 
+          // Превью изображения
+          if (_selectedImage != null)
+            Container(
+              width: double.infinity,
+              height: 150,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  _selectedImage!,
+                  width: double.infinity,
+                  height: 150,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -511,6 +592,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 if (_categoryController.text.isNotEmpty) ...[
                   const Divider(height: 16),
                   _buildInfoRow('Категория', _categoryController.text),
+                ],
+                if (_selectedImage != null) ...[
+                  const Divider(height: 16),
+                  _buildInfoRow('Изображение', 'Выбрано из галереи'),
                 ],
                 const Divider(height: 16),
                 _buildInfoRow(
