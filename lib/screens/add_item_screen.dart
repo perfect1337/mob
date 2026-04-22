@@ -4,7 +4,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/item.dart';
+import '../models/user.dart';
 import '../services/item_service.dart';
+import '../services/auth_service.dart';
 
 class AddItemScreen extends StatefulWidget {
   const AddItemScreen({Key? key}) : super(key: key);
@@ -84,19 +86,32 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   Future<void> _generateItem() async {
     if (_formKey.currentState!.validate()) {
+      final currentUser = AuthService().currentUser;
+
+      if (currentUser == null || !currentUser.canCreateItems) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('У вас нет прав для создания товаров'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       final newItem = Item(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        itemId: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
-        imageUrl: _selectedImage?.path ?? '', // Сохраняем путь к файлу
+        imageUrl: _selectedImage?.path ?? '',
         status: ItemStatus.available,
         price: double.tryParse(_priceController.text),
         category: _categoryController.text.trim().isEmpty
             ? 'Другое'
             : _categoryController.text.trim(),
         createdAt: DateTime.now(),
+        createdBy: currentUser.id,
       );
 
       _generatedQRData = newItem.generateQRData();
@@ -123,6 +138,17 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = AuthService().currentUser;
+
+    if (currentUser == null || !currentUser.canCreateItems) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Добавить товар')),
+        body: const Center(
+          child: Text('У вас нет прав для создания товаров'),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Добавить товар'),
@@ -181,7 +207,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Изображение товара
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -241,7 +266,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-                // Название товара
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -284,7 +308,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-                // Описание
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -328,7 +351,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-                // Цена
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -366,7 +388,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                 const SizedBox(height: 20),
 
-                // Категория
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
@@ -523,7 +544,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
           const SizedBox(height: 32),
 
-          // Превью изображения
           if (_selectedImage != null)
             Container(
               width: double.infinity,

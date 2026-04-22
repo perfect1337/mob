@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../models/user.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -17,7 +18,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
-  
+  UserRole _selectedRole = UserRole.user;
+
   String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
@@ -59,7 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final email = _emailController.text.trim();
       final password = _passwordController.text;
-      final success = await _authService.register(email, password);
+      final success = await _authService.register(email, password, role: _selectedRole);
 
       setState(() => _isLoading = false);
 
@@ -97,7 +99,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           setState(() {
             _emailError = 'Email уже используется';
           });
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -165,7 +167,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
-                  
+
                   Container(
                     width: 100,
                     height: 100,
@@ -194,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   const Text(
                     'Регистрация',
                     style: TextStyle(
@@ -205,9 +207,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
-                  
+
                   Container(
-                    width: 360, 
+                    width: 360,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -226,7 +228,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Email label
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 8),
                             child: Text(
@@ -238,8 +239,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ),
-                          
-                          // Email field
+
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
@@ -281,10 +281,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          
+
                           const SizedBox(height: 20),
-                          
-                          // Password label
+
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 8),
                             child: Text(
@@ -296,8 +295,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ),
-                          
-                          // Password field
+
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
@@ -347,10 +345,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          
+
                           const SizedBox(height: 20),
-                          
-                          // Confirm password label
+
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 8),
                             child: Text(
@@ -362,8 +359,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ),
-                          
-                          // Confirm password field
+
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: !_isConfirmPasswordVisible,
@@ -413,9 +409,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          
+
+                          const SizedBox(height: 20),
+
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 8),
+                            child: Text(
+                              'Роль',
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+
+                          DropdownButtonFormField<UserRole>(
+                            value: _selectedRole,
+                            decoration: InputDecoration(
+                              hintText: 'Выберите роль',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
+                              prefixIcon: Container(
+                                margin: const EdgeInsets.all(10),
+                                child: const Icon(Icons.person_outline, color: Color(0xFFEC4899), size: 20),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFEC4899), width: 2),
+                              ),
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: UserRole.user,
+                                child: Text(UserRole.user.displayName),
+                              ),
+                              DropdownMenuItem(
+                                value: UserRole.admin,
+                                child: Text(UserRole.admin.displayName),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value ?? UserRole.user;
+                              });
+                            },
+                          ),
                           const SizedBox(height: 35),
-                          
+
                           SizedBox(
                             width: double.infinity,
                             height: 60,
@@ -430,26 +479,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               child: _isLoading
                                   ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
                                   : const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text('ЗАРЕГИСТРИРОВАТЬСЯ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                                        SizedBox(width: 8),
-                                        Icon(Icons.rocket_launch_rounded, size: 22),
-                                      ],
-                                    ),
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('ЗАРЕГИСТРИРОВАТЬСЯ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.rocket_launch_rounded, size: 22),
+                                ],
+                              ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 20),
-                          
+
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             style: TextButton.styleFrom(

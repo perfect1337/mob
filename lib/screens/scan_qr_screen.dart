@@ -169,12 +169,12 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
   }
 
   void _processScannedData(String rawData) {
-
     try {
       final Map<String, dynamic> jsonData = jsonDecode(rawData);
 
+      // ИСПРАВЛЕНО: используем itemId вместо id
       final scannedItem = Item(
-        id: jsonData['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        itemId: jsonData['itemId'] as String? ?? jsonData['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
         name: jsonData['name'] as String? ?? 'Без названия',
         description: jsonData['description'] as String? ?? 'Нет описания',
         imageUrl: jsonData['imageUrl'] as String? ?? '',
@@ -189,7 +189,6 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
 
       Navigator.pop(context, scannedItem);
     } catch (e) {
-
       Navigator.pop(context, rawData);
     }
   }

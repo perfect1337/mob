@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/item_service.dart';
+import '../services/auth_service.dart';
 import '../models/item.dart';
+import '../models/user.dart';
 import 'item_detail_screen.dart';
 import 'add_item_screen.dart';
 import 'scan_qr_screen.dart';
 import 'dart:convert';
+
 class ItemsListScreen extends StatefulWidget {
   const ItemsListScreen({Key? key}) : super(key: key);
 
@@ -14,6 +17,7 @@ class ItemsListScreen extends StatefulWidget {
 
 class _ItemsListScreenState extends State<ItemsListScreen> {
   final ItemService _itemService = ItemService();
+  final AuthService _authService = AuthService();
   String _selectedCategory = 'Все';
   List<String> _categories = ['Все'];
   final TextEditingController _searchController = TextEditingController();
@@ -56,59 +60,130 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   }
 
   Future<void> _handleScanResult(dynamic result) async {
-    if (result == null) return;
+    if (result == null || !mounted) return;
 
     Item? itemToShow;
 
     if (result is Item) {
       itemToShow = result;
-
-      final existingItem = _itemService.findItemByQRData(result.qrData ?? '');
-      if (existingItem != null) {
-
-        itemToShow = existingItem;
-      }
-    }
-
-    else if (result is String) {
-
+    } else if (result is String) {
       itemToShow = _itemService.getItemById(result);
 
       if (itemToShow == null) {
-        itemToShow = _itemService.findItemByQRData(result);
+        itemToShow = await _itemService.findItemByQRData(result);
       }
 
       if (itemToShow == null && result.startsWith('{')) {
         try {
           final jsonData = jsonDecode(result);
           itemToShow = Item(
-            id: jsonData['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            itemId: jsonData['itemId'] as String? ?? jsonData['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
             name: jsonData['name'] as String? ?? 'Товар из QR-кода',
             description: jsonData['description'] as String? ?? 'Нет описания',
             imageUrl: jsonData['imageUrl'] as String? ?? '',
             status: ItemStatus.available,
             price: jsonData['price'] != null ? (jsonData['price'] as num).toDouble() : null,
             category: jsonData['category'] as String?,
-            createdAt: DateTime.now(),
+            createdAt: jsonData['createdAt'] != null
+                ? DateTime.parse(jsonData['createdAt'] as String)
+                : DateTime.now(),
             qrData: result,
           );
         } catch (e) {
-          // Не JSON
+
         }
       }
     }
 
     if (itemToShow != null && mounted) {
-      // Показываем детали товара
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ItemDetailScreen(item: itemToShow!),
-        ),
-      );
-      setState(() {});
-    } else if (mounted) {
+      final currentUser = _authService.currentUser;
 
+      if (itemToShow.status == ItemStatus.available) {
+        if (currentUser != null && currentUser.canChangeItemStatus) {
+          await _itemService.updateItemStatus(
+            itemToShow.itemId,
+            ItemStatus.occupied,
+            userId: currentUser.id,
+          );
+
+          await _itemService.loadItems();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Товар "${itemToShow.name}" взят'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+
+          final updatedItem = _itemService.getItemById(itemToShow.itemId);
+          if (updatedItem != null) {
+            itemToShow = updatedItem;
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('У вас нет прав для взятия товара'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } else {
+        if (currentUser != null && currentUser.canChangeItemStatus) {
+          await _itemService.updateItemStatus(
+            itemToShow.itemId,
+            ItemStatus.available,
+          );
+
+          await _itemService.loadItems();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Товар "${itemToShow.name}" возвращен'),
+                backgroundColor: Colors.blue,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+
+          final updatedItem = _itemService.getItemById(itemToShow.itemId);
+          if (updatedItem != null) {
+            itemToShow = updatedItem;
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('У вас нет прав для возврата товара'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ItemDetailScreen(item: itemToShow!),
+            ),
+          ).then((_) {
+            if (mounted) {
+              setState(() {});
+            }
+          });
+        }
+      });
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Не удалось распознать QR-код'),
@@ -117,10 +192,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final filteredItems = _getFilteredItems();
+    final currentUser = _authService.currentUser;
 
     return Scaffold(
       body: Container(
@@ -142,14 +217,27 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'КАТАЛОГ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 2,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'КАТАЛОГ',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        if (currentUser != null)
+                          Text(
+                            currentUser.role.displayName,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
                     ),
                     Row(
                       children: [
@@ -169,24 +257,26 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                        if (currentUser != null && currentUser.canCreateItems) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            borderRadius: BorderRadius.circular(16),
+                            child: IconButton(
+                              icon: const Icon(Icons.add_rounded, color: Colors.white),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                                ).then((_) => setState(() {}));
+                              },
+                            ),
                           ),
-                          child: IconButton(
-                            icon: const Icon(Icons.add_rounded, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const AddItemScreen()),
-                              ).then((_) => setState(() {}));
-                            },
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ],
@@ -406,23 +496,25 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                   fontSize: 14,
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const AddItemScreen()),
-                                  ).then((_) => setState(() {}));
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF7C3AED),
-                                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                              if (currentUser != null && currentUser.canCreateItems) ...[
+                                const SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                                    ).then((_) => setState(() {}));
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF7C3AED),
+                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
                                   ),
+                                  child: const Text('ДОБАВИТЬ ТОВАР'),
                                 ),
-                                child: const Text('ДОБАВИТЬ ТОВАР'),
-                              ),
+                              ],
                             ],
                           ),
                         )

@@ -14,6 +14,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  List<User> _allUsers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    final users = await AuthService().getAllUsers();
+    setState(() {
+      _allUsers = users;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -189,9 +203,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: const Color(0xFFEEF2FF),
                                 borderRadius: BorderRadius.circular(30),
                               ),
-                              child: const Text(
-                                'АКТИВНЫЙ ПОЛЬЗОВАТЕЛЬ',
-                                style: TextStyle(
+                              child: Text(
+                                currentUser?.role.displayName ?? 'ПОЛЬЗОВАТЕЛЬ',
+                                style: const TextStyle(
                                   color: Color(0xFF7C3AED),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -210,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Expanded(
                             child: _buildStatCard(
                               'ПОЛЬЗОВАТЕЛЕЙ',
-                              '${authService.registeredUsers.length}',
+                              '${_allUsers.length}',
                               Icons.group_rounded,
                               const Color(0xFF7C3AED),
                             ),
@@ -227,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 30),
 
                       const Text(
                         'Быстрые действия',
