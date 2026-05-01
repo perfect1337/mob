@@ -4,7 +4,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/item.dart';
-import '../models/user.dart';
 import '../services/item_service.dart';
 import '../services/auth_service.dart';
 
@@ -26,16 +25,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String? _generatedQRData;
   bool _isLoading = false;
   int _currentStep = 0;
-  bool _isImageLoading = false;
 
   final List<String> _categories = [
-    'Электроника',
-    'Смартфоны',
-    'Аудио',
-    'Книги',
-    'Спорт',
-    'Одежда',
-    'Другое',
+    'Электроника', 'Смартфоны', 'Аудио', 'Книги', 'Спорт', 'Одежда', 'Другое',
   ];
 
   @override
@@ -48,38 +40,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Future<void> _pickImage() async {
-    setState(() {
-      _isImageLoading = true;
-    });
-
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        setState(() {
-          _selectedImage = File(image.path);
-        });
-      }
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+      if (image != null) setState(() => _selectedImage = File(image.path));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ошибка при выборе изображения'),
-            duration: Duration(seconds: 2),
-          ),
+          SnackBar(content: Text('Ошибка при выборе изображения'), backgroundColor: Colors.grey[700]),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isImageLoading = false;
-        });
       }
     }
   }
@@ -87,16 +56,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   Future<void> _generateItem() async {
     if (_formKey.currentState!.validate()) {
       final currentUser = AuthService().currentUser;
-
-      if (currentUser == null || !currentUser.canCreateItems) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('У вас нет прав для создания товаров'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+      if (currentUser == null || !currentUser.canCreateItems) return;
 
       setState(() => _isLoading = true);
 
@@ -107,9 +67,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         imageUrl: _selectedImage?.path ?? '',
         status: ItemStatus.available,
         price: double.tryParse(_priceController.text),
-        category: _categoryController.text.trim().isEmpty
-            ? 'Другое'
-            : _categoryController.text.trim(),
+        category: _categoryController.text.trim().isEmpty ? 'Другое' : _categoryController.text.trim(),
         createdAt: DateTime.now(),
         createdBy: currentUser.id,
       );
@@ -138,531 +96,228 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = AuthService().currentUser;
-
-    if (currentUser == null || !currentUser.canCreateItems) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Добавить товар')),
-        body: const Center(
-          child: Text('У вас нет прав для создания товаров'),
-        ),
-      );
-    }
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Добавить товар'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: const Color(0xFF424242),
+        title: const Text('Добавить товар', style: TextStyle(fontWeight: FontWeight.w300)),
+        centerTitle: true,
       ),
-      body: Container(
-        color: Colors.white,
-        child: SafeArea(
-          child: _currentStep == 0
-              ? _buildFormStep()
-              : _buildQRStep(),
-        ),
-      ),
+      body: _currentStep == 0 ? _buildFormStep() : _buildQRStep(),
     );
   }
 
   Widget _buildFormStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              'Шаг 1 из 2: Введите данные',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 13,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Шаг 1 из 2', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              const SizedBox(height: 24),
+              _buildLabel('Изображение'),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: _pickImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                  ),
+                  child: _selectedImage != null
+                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                      : Center(
+                    child: Text('Нажмите для выбора', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+                  ),
+                ),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          Text(
-            'Информация о товаре',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Заполните поля для создания товара',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 13,
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Изображение товара',
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              const SizedBox(height: 20),
+              _buildLabel('Название *'),
+              const SizedBox(height: 8),
+              _buildTextField(controller: _nameController, hintText: 'Название товара', validator: (v) => v?.isEmpty == true ? 'Обязательное поле' : null),
+              const SizedBox(height: 20),
+              _buildLabel('Описание *'),
+              const SizedBox(height: 8),
+              _buildTextField(controller: _descriptionController, hintText: 'Описание товара', maxLines: 3, validator: (v) => v?.isEmpty == true ? 'Обязательное поле' : null),
+              const SizedBox(height: 20),
+              _buildLabel('Цена'),
+              const SizedBox(height: 8),
+              _buildTextField(controller: _priceController, hintText: 'Необязательно', keyboardType: TextInputType.number),
+              const SizedBox(height: 20),
+              _buildLabel('Категория'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  hintText: 'Выберите категорию',
+                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[700]!)),
+                  filled: true,
+                  fillColor: const Color(0xFFFAFAFA),
                 ),
-
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: _isImageLoading
-                        ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
-                        : _selectedImage != null
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        _selectedImage!,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
+                value: _categoryController.text.isEmpty ? null : _categoryController.text,
+                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 14)))).toList(),
+                onChanged: (v) => setState(() => _categoryController.text = v ?? ''),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF424242),
+                        side: BorderSide(color: Colors.grey[300]!),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                       ),
-                    )
-                        : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 50,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Нажмите для выбора изображения',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                      child: const Text('Отмена', style: TextStyle(fontSize: 13)),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Название товара *',
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    hintText: 'Введите название товара',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.inventory_2_outlined, size: 20, color: Colors.grey.shade600),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Введите название товара';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Описание *',
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    hintText: 'Введите описание товара',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.description_outlined, size: 20, color: Colors.grey.shade600),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
-                    ),
-                  ),
-                  maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Введите описание товара';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Цена',
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-
-                TextFormField(
-                  controller: _priceController,
-                  decoration: InputDecoration(
-                    hintText: 'Необязательно',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.attach_money_outlined, size: 20, color: Colors.grey.shade600),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
-                    ),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-
-                const SizedBox(height: 20),
-
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Категория',
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    hintText: 'Выберите категорию',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.category_outlined, size: 20, color: Colors.grey.shade600),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
-                    ),
-                  ),
-                  value: _categoryController.text.isEmpty ? null : _categoryController.text,
-                  items: _categories.map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _categoryController.text = value ?? '';
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 32),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(color: Colors.grey.shade300),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text('Отмена'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _generateItem,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF616161),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                        elevation: 0,
                       ),
+                      child: _isLoading
+                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Создать QR-код', style: TextStyle(fontSize: 13)),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _generateItem,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Colors.grey.shade800,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                            : const Text('Создать QR-код'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildQRStep() {
-    if (_generatedQRData == null) {
-      return const Center(child: Text('Ошибка генерации QR-кода'));
-    }
-
+    if (_generatedQRData == null) return const Center(child: Text('Ошибка'));
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              'Шаг 2 из 2: QR-код готов',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 13,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+        ),
+        child: Column(
+          children: [
+            Text('Шаг 2 из 2', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            const SizedBox(height: 24),
+            const Text('Товар создан', style: TextStyle(fontSize: 16, color: Color(0xFF424242))),
+            const SizedBox(height: 24),
+            if (_selectedImage != null)
+              Container(
+                height: 120,
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Image.file(_selectedImage!, fit: BoxFit.cover),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.check_circle_outline,
-              size: 40,
-              color: Colors.grey.shade700,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          Text(
-            'Товар успешно создан!',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            _nameController.text,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          if (_selectedImage != null)
             Container(
-              width: double.infinity,
-              height: 150,
-              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                color: const Color(0xFFFAFAFA),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  _selectedImage!,
-                  width: double.infinity,
-                  height: 150,
-                  fit: BoxFit.cover,
-                ),
+              child: QrImageView(
+                data: _generatedQRData!,
+                version: QrVersions.auto,
+                size: 160,
+                backgroundColor: Colors.white,
               ),
             ),
-
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
+            const SizedBox(height: 16),
+            _buildInfoRow('Название', _nameController.text),
+            _buildInfoRow('Описание', _descriptionController.text),
+            if (_priceController.text.isNotEmpty) _buildInfoRow('Цена', '\$${_priceController.text}'),
+            if (_categoryController.text.isNotEmpty) _buildInfoRow('Категория', _categoryController.text),
+            _buildInfoRow('Дата', DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())),
+            const SizedBox(height: 24),
+            Row(
               children: [
-                QrImageView(
-                  data: _generatedQRData!,
-                  version: QrVersions.auto,
-                  size: 200,
-                  backgroundColor: Colors.white,
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _resetForm,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF424242),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                    ),
+                    child: const Text('Еще один', style: TextStyle(fontSize: 13)),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'QR-код товара',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 12,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF616161),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Готово', style: TextStyle(fontSize: 13)),
                   ),
                 ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 24),
-
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                _buildInfoRow('Название', _nameController.text),
-                const Divider(height: 16),
-                _buildInfoRow('Описание', _descriptionController.text),
-                if (_priceController.text.isNotEmpty) ...[
-                  const Divider(height: 16),
-                  _buildInfoRow('Цена', '\$${_priceController.text}'),
-                ],
-                if (_categoryController.text.isNotEmpty) ...[
-                  const Divider(height: 16),
-                  _buildInfoRow('Категория', _categoryController.text),
-                ],
-                if (_selectedImage != null) ...[
-                  const Divider(height: 16),
-                  _buildInfoRow('Изображение', 'Выбрано из галереи'),
-                ],
-                const Divider(height: 16),
-                _buildInfoRow(
-                  'Дата создания',
-                  DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now()),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _resetForm,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Добавить еще'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Готово'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.grey.shade800,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 12));
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    String? hintText,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: const TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[700]!)),
+        filled: true,
+        fillColor: const Color(0xFFFAFAFA),
+      ),
+      validator: validator,
     );
   }
 
@@ -672,27 +327,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: Colors.grey.shade800,
-                fontSize: 13,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          SizedBox(width: 80, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500]))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, color: Color(0xFF424242)))),
         ],
       ),
     );

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 
 enum ItemStatus {
   available,
@@ -11,15 +10,6 @@ enum ItemStatus {
         return 'Свободен';
       case ItemStatus.occupied:
         return 'Занят';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case ItemStatus.available:
-        return Colors.green;
-      case ItemStatus.occupied:
-        return Colors.red;
     }
   }
 }
@@ -132,13 +122,8 @@ class Item {
 
   static ItemStatus _parseStatus(String? status) {
     if (status == null) return ItemStatus.available;
-
-    if (status.contains('available')) {
-      return ItemStatus.available;
-    } else if (status.contains('occupied')) {
-      return ItemStatus.occupied;
-    }
-
+    if (status.contains('available')) return ItemStatus.available;
+    if (status.contains('occupied')) return ItemStatus.occupied;
     return ItemStatus.available;
   }
 

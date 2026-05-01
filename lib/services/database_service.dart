@@ -240,7 +240,7 @@ class DatabaseService {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getItemHistory(String itemId) as nc {
+  Future<List<Map<String, dynamic>>> getItemHistory(String itemId) async {
     final item = await getItemByItemId(itemId);
     if (item == null) return [];
 

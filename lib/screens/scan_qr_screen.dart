@@ -26,15 +26,12 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (cameraController == null) {
-      _initController();
-    }
+    if (cameraController == null) _initController();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!mounted) return;
-
     if (state == AppLifecycleState.resumed && _isInitialized && cameraController != null) {
       _startScanner();
     } else if (state == AppLifecycleState.paused && cameraController != null) {
@@ -44,42 +41,28 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
 
   Future<void> _initController() async {
     await _disposeController();
-
-    cameraController = MobileScannerController(
-      facing: CameraFacing.back,
-      torchEnabled: false,
-    );
+    cameraController = MobileScannerController(facing: CameraFacing.back, torchEnabled: false);
     setState(() {});
     await _startScanner();
   }
 
   Future<void> _startScanner() async {
     if (cameraController == null || !mounted) return;
-
     try {
       if (!cameraController!.value.isInitialized) {
         await cameraController!.start();
         _isInitialized = true;
       }
     } on PlatformException catch (e) {
-      if (e.code == 'PermissionDenied' && mounted) {
-        _showPermissionDialog();
-      }
-    } catch (e) {
-
-    }
+      if (e.code == 'PermissionDenied' && mounted) _showPermissionDialog();
+    } catch (e) {}
   }
 
   Future<void> _stopScanner() async {
     if (cameraController == null || !mounted) return;
-
     try {
-      if (cameraController!.value.isInitialized) {
-        await cameraController!.stop();
-      }
-    } catch (e) {
-
-    }
+      if (cameraController!.value.isInitialized) await cameraController!.stop();
+    } catch (e) {}
   }
 
   void _showPermissionDialog() {
@@ -88,21 +71,10 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Доступ к камере'),
-        content: const Text(
-          'Для сканирования QR-кодов приложению необходим доступ к камере.',
-        ),
+        content: const Text('Для сканирования QR-кодов необходим доступ к камере.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showManualInstructions();
-            },
-            child: const Text('Как разрешить?'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+          TextButton(onPressed: () { Navigator.pop(context); _showManualInstructions(); }, child: const Text('Как разрешить?')),
         ],
       ),
     );
@@ -113,18 +85,9 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Инструкция'),
-        content: const Text(
-          '1. Откройте настройки телефона\n'
-              '2. Перейдите в раздел "Приложения"\n'
-              '3. Найдите приложение\n'
-              '4. Нажмите "Разрешения"\n'
-              '5. Включите доступ к камере',
-        ),
+        content: const Text('1. Откройте настройки\n2. Приложения\n3. Найдите приложение\n4. Разрешения\n5. Включите камеру'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Понятно'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Понятно')),
         ],
       ),
     );
@@ -133,16 +96,10 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
   Future<void> _pickImageFromGallery() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
     if (image == null) return;
-
-    setState(() {
-      isProcessing = true;
-    });
-
+    setState(() => isProcessing = true);
     try {
       final BarcodeCapture? barcodeCapture = await MobileScannerPlatform.instance.analyzeImage(image.path);
-
       if (barcodeCapture != null && barcodeCapture.barcodes.isNotEmpty) {
         final String? scannedValue = barcodeCapture.barcodes.first.rawValue;
         if (scannedValue != null && scannedValue.isNotEmpty) {
@@ -155,24 +112,18 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
           _showError('QR-код не содержит данных');
         }
       } else {
-        _showError('Не удалось найти QR-код на изображении');
+        _showError('QR-код не найден');
       }
     } catch (e) {
-      _showError('Ошибка при анализе изображения');
+      _showError('Ошибка анализа');
     } finally {
-      if (mounted) {
-        setState(() {
-          isProcessing = false;
-        });
-      }
+      if (mounted) setState(() => isProcessing = false);
     }
   }
 
   void _processScannedData(String rawData) {
     try {
       final Map<String, dynamic> jsonData = jsonDecode(rawData);
-
-      // ИСПРАВЛЕНО: используем itemId вместо id
       final scannedItem = Item(
         itemId: jsonData['itemId'] as String? ?? jsonData['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
         name: jsonData['name'] as String? ?? 'Без названия',
@@ -181,12 +132,9 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
         status: ItemStatus.available,
         price: jsonData['price'] != null ? (jsonData['price'] as num).toDouble() : null,
         category: jsonData['category'] as String?,
-        createdAt: jsonData['createdAt'] != null
-            ? DateTime.parse(jsonData['createdAt'] as String)
-            : DateTime.now(),
+        createdAt: jsonData['createdAt'] != null ? DateTime.parse(jsonData['createdAt'] as String) : DateTime.now(),
         qrData: rawData,
       );
-
       Navigator.pop(context, scannedItem);
     } catch (e) {
       Navigator.pop(context, rawData);
@@ -196,10 +144,7 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
   void _showError(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(seconds: 2),
-        ),
+        SnackBar(content: Text(message), backgroundColor: Colors.grey[700], duration: const Duration(seconds: 2)),
       );
     }
   }
@@ -207,26 +152,20 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Сканировать QR-код'),
-        backgroundColor: Theme.of(context).primaryColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flash_on),
-            onPressed: () => cameraController?.toggleTorch(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.cameraswitch),
-            onPressed: () => cameraController?.switchCamera(),
-          ),
-        ],
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: const Color(0xFF424242),
+        title: const Text('Сканировать QR', style: TextStyle(fontWeight: FontWeight.w300)),
+        centerTitle: true,
       ),
       body: Column(
         children: [
           Expanded(
             flex: 4,
             child: cameraController == null
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
                 : MobileScanner(
               controller: cameraController!,
               onDetect: (capture) async {
@@ -234,13 +173,9 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
                   final List<Barcode> barcodes = capture.barcodes;
                   for (final barcode in barcodes) {
                     if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                      setState(() {
-                        isProcessing = true;
-                      });
+                      setState(() => isProcessing = true);
                       await _stopScanner();
-                      if (mounted) {
-                        _processScannedData(barcode.rawValue!);
-                      }
+                      if (mounted) _processScannedData(barcode.rawValue!);
                       break;
                     }
                   }
@@ -250,21 +185,13 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
           ),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: isProcessing ? null : _pickImageFromGallery,
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Выбрать из галереи'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              ],
+            color: const Color(0xFF424242),
+            child: Center(
+              child: TextButton(
+                onPressed: isProcessing ? null : _pickImageFromGallery,
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                child: const Text('Выбрать из галереи', style: TextStyle(fontSize: 13)),
+              ),
             ),
           ),
         ],
@@ -284,9 +211,7 @@ class _ScanQrScreenState extends State<ScanQrScreen> with WidgetsBindingObserver
       try {
         await cameraController!.stop();
         await cameraController!.dispose();
-      } catch (e) {
-
-      }
+      } catch (e) {}
       cameraController = null;
     }
     _isInitialized = false;

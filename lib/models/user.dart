@@ -55,11 +55,8 @@ class User {
   }
 
   bool get isAdmin => role == UserRole.admin;
-
   bool get canCreateItems => isAdmin;
-
   bool get canDeleteItems => isAdmin;
-
   bool get canChangeItemStatus => true;
 
   @override
