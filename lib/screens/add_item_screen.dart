@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import '../models/item.dart';
 import '../services/item_service.dart';
 import '../services/auth_service.dart';
@@ -27,7 +28,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
   int _currentStep = 0;
 
   final List<String> _categories = [
-    'Электроника', 'Смартфоны', 'Аудио', 'Книги', 'Спорт', 'Одежда', 'Другое',
+    'Электроника',
+    'Смартфоны',
+    'Аудио',
+    'Книги',
+    'Спорт',
+    'Одежда',
+    'Другое',
   ];
 
   @override
@@ -42,12 +49,22 @@ class _AddItemScreenState extends State<AddItemScreen> {
   Future<void> _pickImage() async {
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
-      if (image != null) setState(() => _selectedImage = File(image.path));
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() => _selectedImage = File(image.path));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при выборе изображения'), backgroundColor: Colors.grey[700]),
+          SnackBar(
+            content: Text('Ошибка при выборе изображения'),
+            backgroundColor: Colors.grey[700],
+          ),
         );
       }
     }
@@ -60,25 +77,55 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
       setState(() => _isLoading = true);
 
-      final newItem = Item(
-        itemId: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        imageUrl: _selectedImage?.path ?? '',
-        status: ItemStatus.available,
-        price: double.tryParse(_priceController.text),
-        category: _categoryController.text.trim().isEmpty ? 'Другое' : _categoryController.text.trim(),
-        createdAt: DateTime.now(),
-        createdBy: currentUser.id,
-      );
+      String? uploadedImageUrl;
 
-      _generatedQRData = newItem.generateQRData();
-      await ItemService().addItem(newItem);
+      try {
 
-      setState(() {
-        _isLoading = false;
-        _currentStep = 1;
-      });
+        if (_selectedImage != null) {
+          final fileName =
+              'items/${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final storageRef = firebase_storage.FirebaseStorage.instance
+              .ref()
+              .child(fileName);
+          final task = storageRef.putFile(_selectedImage!);
+          await task.whenComplete(() => null);
+
+          uploadedImageUrl = await storageRef.getDownloadURL();
+        }
+
+        final newItem = Item(
+          itemId: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          imageUrl: uploadedImageUrl ?? '',
+          status: ItemStatus.available,
+          price: double.tryParse(_priceController.text),
+          category: _categoryController.text.trim().isEmpty
+              ? 'Другое'
+              : _categoryController.text.trim(),
+          createdAt: DateTime.now(),
+          createdBy: currentUser.id,
+        );
+
+        _generatedQRData = newItem.generateQRData();
+        await ItemService().addItem(newItem);
+
+        setState(() {
+          _isLoading = false;
+          _currentStep = 1;
+        });
+      } catch (e) {
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка загрузки изображения: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -102,7 +149,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: const Color(0xFF424242),
-        title: const Text('Добавить товар', style: TextStyle(fontWeight: FontWeight.w300)),
+        title: const Text(
+          'Добавить товар',
+          style: TextStyle(fontWeight: FontWeight.w300),
+        ),
         centerTitle: true,
       ),
       body: _currentStep == 0 ? _buildFormStep() : _buildQRStep(),
@@ -123,7 +173,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Шаг 1 из 2', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              Text(
+                'Шаг 1 из 2',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
               const SizedBox(height: 24),
               _buildLabel('Изображение'),
               const SizedBox(height: 8),
@@ -139,22 +192,38 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   child: _selectedImage != null
                       ? Image.file(_selectedImage!, fit: BoxFit.cover)
                       : Center(
-                    child: Text('Нажмите для выбора', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+                    child: Text(
+                      'Нажмите для выбора',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
               _buildLabel('Название *'),
               const SizedBox(height: 8),
-              _buildTextField(controller: _nameController, hintText: 'Название товара', validator: (v) => v?.isEmpty == true ? 'Обязательное поле' : null),
+              _buildTextField(
+                controller: _nameController,
+                hintText: 'Название товара',
+                validator: (v) => v?.isEmpty == true ? 'Обязательное поле' : null,
+              ),
               const SizedBox(height: 20),
               _buildLabel('Описание *'),
               const SizedBox(height: 8),
-              _buildTextField(controller: _descriptionController, hintText: 'Описание товара', maxLines: 3, validator: (v) => v?.isEmpty == true ? 'Обязательное поле' : null),
+              _buildTextField(
+                controller: _descriptionController,
+                hintText: 'Описание товара',
+                maxLines: 3,
+                validator: (v) => v?.isEmpty == true ? 'Обязательное поле' : null,
+              ),
               const SizedBox(height: 20),
               _buildLabel('Цена'),
               const SizedBox(height: 8),
-              _buildTextField(controller: _priceController, hintText: 'Необязательно', keyboardType: TextInputType.number),
+              _buildTextField(
+                controller: _priceController,
+                hintText: 'Необязательно',
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: 20),
               _buildLabel('Категория'),
               const SizedBox(height: 8),
@@ -162,15 +231,32 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 decoration: InputDecoration(
                   hintText: 'Выберите категорию',
                   hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[700]!)),
+                  contentPadding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(2),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(2),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(2),
+                    borderSide: BorderSide(color: Colors.grey[700]!),
+                  ),
                   filled: true,
                   fillColor: const Color(0xFFFAFAFA),
                 ),
-                value: _categoryController.text.isEmpty ? null : _categoryController.text,
-                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 14)))).toList(),
+                value: _categoryController.text.isEmpty
+                    ? null
+                    : _categoryController.text,
+                items: _categories.map((c) {
+                  return DropdownMenuItem(
+                    value: c,
+                    child: Text(c, style: const TextStyle(fontSize: 14)),
+                  );
+                }).toList(),
                 onChanged: (v) => setState(() => _categoryController.text = v ?? ''),
               ),
               const SizedBox(height: 28),
@@ -183,7 +269,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         foregroundColor: const Color(0xFF424242),
                         side: BorderSide(color: Colors.grey[300]!),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                       child: const Text('Отмена', style: TextStyle(fontSize: 13)),
                     ),
@@ -196,12 +284,24 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         backgroundColor: const Color(0xFF616161),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                         elevation: 0,
                       ),
                       child: _isLoading
-                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Создать QR-код', style: TextStyle(fontSize: 13)),
+                          ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Text(
+                        'Создать QR-код',
+                        style: TextStyle(fontSize: 13),
+                      ),
                     ),
                   ),
                 ],
@@ -214,7 +314,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Widget _buildQRStep() {
-    if (_generatedQRData == null) return const Center(child: Text('Ошибка'));
+    if (_generatedQRData == null) {
+      return const Center(child: Text('Ошибка'));
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -225,9 +327,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
         ),
         child: Column(
           children: [
-            Text('Шаг 2 из 2', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            Text(
+              'Шаг 2 из 2',
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+            ),
             const SizedBox(height: 24),
-            const Text('Товар создан', style: TextStyle(fontSize: 16, color: Color(0xFF424242))),
+            const Text(
+              'Товар создан',
+              style: TextStyle(fontSize: 16, color: Color(0xFF424242)),
+            ),
             const SizedBox(height: 24),
             if (_selectedImage != null)
               Container(
@@ -251,9 +359,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
             const SizedBox(height: 16),
             _buildInfoRow('Название', _nameController.text),
             _buildInfoRow('Описание', _descriptionController.text),
-            if (_priceController.text.isNotEmpty) _buildInfoRow('Цена', '\$${_priceController.text}'),
-            if (_categoryController.text.isNotEmpty) _buildInfoRow('Категория', _categoryController.text),
-            _buildInfoRow('Дата', DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())),
+            if (_priceController.text.isNotEmpty)
+              _buildInfoRow('Цена', '\$${_priceController.text}'),
+            if (_categoryController.text.isNotEmpty)
+              _buildInfoRow('Категория', _categoryController.text),
+            _buildInfoRow(
+              'Дата',
+              DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now()),
+            ),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -264,7 +377,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       foregroundColor: const Color(0xFF424242),
                       side: BorderSide(color: Colors.grey[300]!),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                     child: const Text('Еще один', style: TextStyle(fontSize: 13)),
                   ),
@@ -277,7 +392,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       backgroundColor: const Color(0xFF616161),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                       elevation: 0,
                     ),
                     child: const Text('Готово', style: TextStyle(fontSize: 13)),
@@ -292,7 +409,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Widget _buildLabel(String text) {
-    return Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 12));
+    return Text(
+      text,
+      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+    );
   }
 
   Widget _buildTextField({
@@ -311,9 +431,18 @@ class _AddItemScreenState extends State<AddItemScreen> {
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[300]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(2), borderSide: BorderSide(color: Colors.grey[700]!)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(2),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(2),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(2),
+          borderSide: BorderSide(color: Colors.grey[700]!),
+        ),
         filled: true,
         fillColor: const Color(0xFFFAFAFA),
       ),
@@ -327,8 +456,19 @@ class _AddItemScreenState extends State<AddItemScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 80, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500]))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, color: Color(0xFF424242)))),
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF424242)),
+            ),
+          ),
         ],
       ),
     );
