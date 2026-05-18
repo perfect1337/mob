@@ -13,15 +13,42 @@ class AuthService {
 
   User? get currentUser => _currentUser;
 
-  Future<void> initialize() async {}
+  Stream<fb_auth.User?> get authStateChanges => _auth.authStateChanges();
+
+  Future<void> initialize() async {
+    final fbUser = _auth.currentUser;
+    if (fbUser != null) {
+      await _loadUserFromFirestore(fbUser.uid);
+    }
+  }
+
+  Future<void> _loadUserFromFirestore(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      _currentUser = User(
+        id: uid.hashCode,
+        email: data['email'] ?? '',
+        password: '',
+        role: UserRole.fromString(data['role'] ?? 'UserRole.user'),
+      );
+    }
+  }
 
   Future<bool> register(String email, String password, {UserRole role = UserRole.user}) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       await _firestore.collection('users').doc(cred.user!.uid).set({
-        'email': email, 'password': password, 'role': role.toString(),
+        'email': email,
+        'role': role.toString(),
         'createdAt': FieldValue.serverTimestamp(),
       });
+      _currentUser = User(
+        id: cred.user!.uid.hashCode,
+        email: email,
+        password: password,
+        role: role,
+      );
       return true;
     } on fb_auth.FirebaseAuthException {
       return false;
@@ -31,16 +58,8 @@ class AuthService {
   Future<bool> login(String email, String password) async {
     try {
       final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
-      final doc = await _firestore.collection('users').doc(cred.user!.uid).get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        _currentUser = User(
-          id: cred.user!.uid.hashCode, email: data['email'] ?? email,
-          password: password, role: UserRole.fromString(data['role'] ?? 'UserRole.user'),
-        );
-        return true;
-      }
-      return false;
+      await _loadUserFromFirestore(cred.user!.uid);
+      return true;
     } on fb_auth.FirebaseAuthException {
       return false;
     }
@@ -58,8 +77,10 @@ class AuthService {
     return snapshot.docs.map((doc) {
       final data = doc.data();
       return User(
-        id: doc.id.hashCode, email: data['email'] ?? '',
-        password: data['password'] ?? '', role: UserRole.fromString(data['role'] ?? 'UserRole.user'),
+        id: doc.id.hashCode,
+        email: data['email'] ?? '',
+        password: '',
+        role: UserRole.fromString(data['role'] ?? 'UserRole.user'),
       );
     }).toList();
   }

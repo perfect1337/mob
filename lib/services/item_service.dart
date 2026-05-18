@@ -27,10 +27,16 @@ class ItemService {
 
   Future<void> addItem(Item item) async {
     await _firestore.collection('items').doc(item.itemId).set({
-      'itemId': item.itemId, 'name': item.name, 'description': item.description,
-      'imageUrl': item.imageUrl, 'status': item.status.toString(), 'price': item.price,
-      'category': item.category, 'createdAt': item.createdAt.toIso8601String(),
-      'qrData': item.qrData ?? item.generateQRData(), 'createdBy': item.createdBy,
+      'itemId': item.itemId,
+      'name': item.name,
+      'description': item.description,
+      'imageUrl': item.imageUrl,
+      'status': item.status.toString(),
+      'price': item.price,
+      'category': item.category,
+      'createdAt': item.createdAt.toIso8601String(),
+      'qrData': item.qrData ?? item.generateQRData(),
+      'createdBy': item.createdBy,
       'updatedAt': FieldValue.serverTimestamp(),
     });
     await _addHistory(item.itemId, 'Создание');
@@ -42,8 +48,13 @@ class ItemService {
     final now = DateTime.now().toIso8601String();
     final updates = <String, dynamic>{'status': newStatus.toString(), 'updatedAt': FieldValue.serverTimestamp()};
     final action = newStatus == ItemStatus.occupied ? 'Взятие' : 'Возврат';
-    if (newStatus == ItemStatus.occupied) { updates['takenBy'] = userId; updates['takenAt'] = now; }
-    else { updates['takenBy'] = null; updates['returnedAt'] = now; }
+    if (newStatus == ItemStatus.occupied) {
+      updates['takenBy'] = userId;
+      updates['takenAt'] = now;
+    } else {
+      updates['takenBy'] = null;
+      updates['returnedAt'] = now;
+    }
 
     await _firestore.collection('items').doc(itemId).update(updates);
     await _addHistory(itemId, action);
@@ -84,11 +95,17 @@ class ItemService {
   }
 
   Item _itemFromFirestore(Map<String, dynamic> d) => Item(
-    itemId: d['itemId'] ?? '', name: d['name'] ?? '', description: d['description'] ?? '',
-    imageUrl: d['imageUrl'] ?? '', status: d['status'] == 'ItemStatus.occupied' ? ItemStatus.occupied : ItemStatus.available,
-    price: d['price']?.toDouble(), category: d['category'],
+    itemId: d['itemId'] ?? '',
+    name: d['name'] ?? '',
+    description: d['description'] ?? '',
+    imageUrl: d['imageUrl'] ?? '',
+    status: d['status'] == 'ItemStatus.occupied' ? ItemStatus.occupied : ItemStatus.available,
+    price: d['price']?.toDouble(),
+    category: d['category'],
     createdAt: DateTime.tryParse(d['createdAt'] ?? '') ?? DateTime.now(),
-    qrData: d['qrData'], createdBy: d['createdBy'], takenBy: d['takenBy'],
+    qrData: d['qrData'],
+    createdBy: d['createdBy'],
+    takenBy: d['takenBy'],
     takenAt: d['takenAt'] != null ? DateTime.tryParse(d['takenAt']) : null,
     returnedAt: d['returnedAt'] != null ? DateTime.tryParse(d['returnedAt']) : null,
   );

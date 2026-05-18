@@ -50,7 +50,8 @@ class DatabaseService {
     if (item == null) return 0;
     final now = DateTime.now();
     return await (await database).update('items', {
-      'status': newStatus.toString(), 'takenBy': newStatus == ItemStatus.occupied ? userId : null,
+      'status': newStatus.toString(),
+      'takenBy': newStatus == ItemStatus.occupied ? userId : null,
       'takenAt': newStatus == ItemStatus.occupied ? now.toIso8601String() : item.takenAt?.toIso8601String(),
       'returnedAt': newStatus == ItemStatus.available ? now.toIso8601String() : item.returnedAt?.toIso8601String(),
     }, where: 'itemId = ?', whereArgs: [itemId]);
@@ -64,11 +65,18 @@ class DatabaseService {
       (await (await database).query('history', where: 'itemId = ?', whereArgs: [itemId], orderBy: 'date DESC')).map((m) => {'action': m['action'], 'user': m['user'], 'date': DateTime.parse(m['date'] as String)}).toList();
 
   Map<String, dynamic> _itemToMap(Item item) => {
-    'itemId': item.itemId, 'name': item.name, 'description': item.description,
-    'imageUrl': item.imageUrl, 'status': item.status.toString(), 'price': item.price,
-    'category': item.category, 'createdAt': item.createdAt.toIso8601String(),
-    'qrData': item.qrData ?? item.generateQRData(), 'createdBy': item.createdBy,
-    'takenBy': item.takenBy, 'takenAt': item.takenAt?.toIso8601String(),
+    'itemId': item.itemId,
+    'name': item.name,
+    'description': item.description,
+    'imageUrl': item.imageUrl,
+    'status': item.status.toString(),
+    'price': item.price,
+    'category': item.category,
+    'createdAt': item.createdAt.toIso8601String(),
+    'qrData': item.qrData ?? item.generateQRData(),
+    'createdBy': item.createdBy,
+    'takenBy': item.takenBy,
+    'takenAt': item.takenAt?.toIso8601String(),
     'returnedAt': item.returnedAt?.toIso8601String(),
   };
 

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import '../services/item_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/item_provider.dart';
+import '../models/user.dart';
+import '../widgets/stat_card.dart';
 import 'login_screen.dart';
 import 'items_list_screen.dart';
-import '../models/user.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  List<User> _allUsers = [];
+  List<Map<String, dynamic>> _users = [];
 
   @override
   void initState() {
@@ -23,26 +25,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUsers() async {
-    final users = await AuthService().getAllUsers();
-    setState(() => _allUsers = users);
+    final users = await Provider.of<AuthProvider>(context, listen: false).getAllUsers();
+    setState(() => _users = users.map((u) => {'email': u.email, 'role': u.role.displayName}).toList());
   }
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
-    final currentUser = authService.currentUser;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final itemProvider = Provider.of<ItemProvider>(context);
+    final currentUser = authProvider.currentUser;
 
     final screens = [
-      _buildMainScreen(context, authService, currentUser),
+      _buildMainScreen(context, authProvider, currentUser, itemProvider),
       const ItemsListScreen(),
     ];
 
     return Scaffold(
       body: screens[_selectedIndex],
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey[200]!)),
-        ),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[200]!))),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (index) => setState(() => _selectedIndex = index),
@@ -54,23 +55,15 @@ class _HomeScreenState extends State<HomeScreen> {
           type: BottomNavigationBarType.fixed,
           elevation: 0,
           items: const [
-            BottomNavigationBarItem(
-              icon: Text('●', style: TextStyle(fontSize: 8)),
-              activeIcon: Text('●', style: TextStyle(fontSize: 10)),
-              label: 'ГЛАВНАЯ',
-            ),
-            BottomNavigationBarItem(
-              icon: Text('●', style: TextStyle(fontSize: 8)),
-              activeIcon: Text('●', style: TextStyle(fontSize: 10)),
-              label: 'ТОВАРЫ',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.circle, size: 8), activeIcon: Icon(Icons.circle, size: 10), label: 'ГЛАВНАЯ'),
+            BottomNavigationBarItem(icon: Icon(Icons.circle, size: 8), activeIcon: Icon(Icons.circle, size: 10), label: 'ТОВАРЫ'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMainScreen(BuildContext context, AuthService authService, User? currentUser) {
+  Widget _buildMainScreen(BuildContext context, AuthProvider authProvider, User? currentUser, ItemProvider itemProvider) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -88,23 +81,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        currentUser?.email ?? 'Пользователь',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w300,
-                          color: Color(0xFF424242),
-                        ),
-                      ),
+                      Text(currentUser?.email ?? 'Пользователь', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w300, color: Color(0xFF424242))),
                       const SizedBox(height: 2),
-                      Text(
-                        currentUser?.role.displayName ?? '',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      ),
+                      Text(currentUser?.role.displayName ?? '', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                     ],
                   ),
                   TextButton(
-                    onPressed: () => _logout(context),
+                    onPressed: () async {
+                      await authProvider.logout();
+                      if (mounted) {
+                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                      }
+                    },
                     style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
                     child: const Text('Выход', style: TextStyle(fontSize: 13)),
                   ),
@@ -126,26 +114,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Row(
                         children: [
-                          Expanded(
-                            child: _buildStatItem('Пользователей', '${_allUsers.length}'),
-                          ),
+                          Expanded(child: StatCard(label: 'Пользователей', value: '${_users.length}')),
                           Container(width: 1, height: 40, color: const Color(0xFFE0E0E0)),
-                          Expanded(
-                            child: _buildStatItem('Товаров', '${ItemService().items.length}'),
-                          ),
+                          Expanded(child: StatCard(label: 'Товаров', value: '${itemProvider.items.length}')),
                         ],
                       ),
                     ),
                     const SizedBox(height: 32),
-                    const Text(
-                      'ДЕЙСТВИЯ',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF9E9E9E),
-                        letterSpacing: 1,
-                      ),
-                    ),
+                    const Text('ДЕЙСТВИЯ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: Color(0xFF9E9E9E), letterSpacing: 1)),
                     const SizedBox(height: 12),
                     InkWell(
                       onTap: () => setState(() => _selectedIndex = 1),
@@ -156,10 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: Colors.white,
                           border: Border.all(color: const Color(0xFFE0E0E0)),
                         ),
-                        child: const Text(
-                          'Просмотр товаров',
-                          style: TextStyle(fontSize: 14, color: Color(0xFF424242)),
-                        ),
+                        child: const Text('Просмотр товаров', style: TextStyle(fontSize: 14, color: Color(0xFF424242))),
                       ),
                     ),
                   ],
@@ -170,36 +143,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w300,
-            color: Color(0xFF424242),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    final authService = AuthService();
-    await authService.logout();
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
   }
 }
